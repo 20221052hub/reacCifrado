@@ -1,0 +1,100 @@
+// src/components/DSA/LoginDSA.js
+import React, { useState, useEffect } from 'react';
+import forge from 'node-forge';
+import VerifySignature from './VerifySignature';
+
+const LoginDSA = () => {
+    const [formData, setFormData] = useState({
+        nombre: '',
+        telefono: '',
+        correo: '',
+        direccion: '',
+        numeroTarjeta: ''
+    });
+    const [signature, setSignature] = useState('');
+    const [publicKey, setPublicKey] = useState('');
+    const [privateKey, setPrivateKey] = useState('');
+
+    // Generar un par de claves DSA
+    const generateKeys = () => {
+        const keypair = forge.pki.dsa.generateKeyPair(2048); // Asegúrate de que esta línea esté correcta
+        setPublicKey(forge.pki.publicKeyToPem(keypair.publicKey));
+        setPrivateKey(keypair.privateKey); // Cambiado a keypair.privateKey
+    };
+
+    // Llamar a generateKeys solo una vez al montar el componente
+    useEffect(() => {
+        generateKeys();
+    }, []);
+
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setFormData({ ...formData, [name]: value });
+    };
+
+    const handleSign = () => {
+        const md = forge.md.sha256.create();
+        md.update(JSON.stringify(formData), 'utf8');
+        const signature = privateKey.sign(md); // Asegúrate de que privateKey esté definido
+        const encodedSignature = forge.util.encode64(signature);
+        setSignature(encodedSignature);
+    };
+
+    return (
+        <div className="login-container">
+            <h2>Formulario de Login con DSA</h2>
+            <form className="login-form">
+                <input 
+                    type="text" 
+                    name="nombre" 
+                    placeholder="Nombre" 
+                    onChange={handleChange} 
+                    required 
+                />
+                <input 
+                    type="text" 
+                    name="telefono" 
+                    placeholder="Teléfono" 
+                    onChange={handleChange} 
+                    required 
+                />
+                <input 
+                    type="email" 
+                    name="correo" 
+                    placeholder="Correo" 
+                    onChange={handleChange} 
+                    required 
+                />
+                <input 
+                    type="text" 
+                    name="direccion" 
+                    placeholder="Dirección" 
+                    onChange={handleChange} 
+                    required 
+                />
+                <input 
+                    type="text" 
+                    name="numeroTarjeta" 
+                    placeholder="Número de Tarjeta" 
+                    onChange={handleChange} 
+                    required 
+                />
+                
+                <button type="button" onClick={handleSign}>Firmar</button>
+
+                {signature && (
+                    <div className="signature-display">
+                        <h3>Firma:</h3>
+                        <p>{signature}</p>
+                    </div>
+                )}
+            </form>
+
+            {signature && (
+                <VerifySignature publicKey={publicKey} data={formData} signature={signature} />
+            )}
+        </div>
+    );
+};
+
+export default LoginDSA;
